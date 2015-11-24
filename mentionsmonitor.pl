@@ -8,14 +8,14 @@ use autodie qw(:file);
 use open qw(:utf8 :std);
 
 use AnyEvent::Twitter::Stream;
-use DateTime;
 use Net::Twitter;
+use Time::Moment;
 use Try::Tiny;
 use YAML::XS qw(DumpFile LoadFile);
 
 # MentionsMonitor: A simple Twitter bot that scans for misdirected mentions and blocks the unwitting users.
 # Inspired by @denny's MentionsManager <https://github.com/denny/MentionsManager>
-my $VERSION = '1.00';
+my $VERSION = '1.01';
 
 ################################################################################
 
@@ -49,13 +49,18 @@ if (exists $oauth{access_token} && defined $oauth{access_token} &&
 # If the client is not yet authorized, do it now:
 unless ($nt->authorized) {
 	say join(' ', 'Authorise this app at', $nt->get_authorization_url, 'and enter the PIN#:');
-	my $pin = <STDIN>;			# Wait for input
+	my $pin = <STDIN>; # Wait for input
 	chomp $pin;
 	@oauth{qw(access_token access_token_secret user_id screen_name)} = $nt->request_access_token(verifier => $pin);
 	$nt->access_token($oauth{access_token});
 	$nt->access_token_secret($oauth{access_token_secret});
 	say join(' ', 'Authorised user', $oauth{screen_name}, '.');
 	DumpFile('./oauth.yml', \%oauth) or die "Failed to write Twitter OAuth file: $!\n";
+}
+
+unless (exists $oauth{user_id} && defined $oauth{user_id} &&
+        exists $oauth{screen_name} && defined $oauth{screen_name}) {
+	die "Could not find Twitter user id/screen name!\n"; # Suppose we could fetch it with $nt->verify_credentials but… really?
 }
 
 # Set up the AE::T::S listener for the streaming API:
@@ -177,9 +182,9 @@ sub block {
 # If the block worked, log it to a Markdown list for future reference:
 sub logblock {
 	my $tweet = shift;
-	my $dt = DateTime->now();
+	my $tm = Time::Moment->now_utc;
 	open (my $log, '>>', './blocks.txt');
-	printf ($log "- %s :: User [%s](https://www.twitter.com/%s) was blocked for tweet <https://www.twitter.com/%s/status/%s>\n", $dt->datetime(), $tweet->{user}{screen_name}, $tweet->{user}{screen_name}, $tweet->{user}{screen_name}, $tweet->{id_str});
+	printf ($log "- %s :: User [%s](https://www.twitter.com/%s) was blocked for tweet <https://www.twitter.com/%s/status/%s>\n", $tm->strftime('%Y-%m-%dT%H:%M:%S%Z'), $tweet->{user}{screen_name}, $tweet->{user}{screen_name}, $tweet->{user}{screen_name}, $tweet->{id_str});
 	close $log;
 	return;
 }
