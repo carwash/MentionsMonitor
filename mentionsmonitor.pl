@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use 5.016;
+use 5.022;
 use autodie qw(:file);
 use open qw(:utf8 :std);
 
@@ -15,7 +15,7 @@ use YAML::XS qw(DumpFile LoadFile);
 
 # MentionsMonitor: A simple Twitter bot that scans for misdirected mentions and blocks the unwitting users.
 # Inspired by @denny's MentionsManager <https://github.com/denny/MentionsManager>
-my $VERSION = '1.01';
+my $VERSION = '1.02';
 
 ################################################################################
 
@@ -76,7 +76,7 @@ my $listener = AnyEvent::Twitter::Stream->new(
 	                                                                  my $tweet = shift;
 
 	                                                                  # Must be a mention:
-	                                                                  return if ($tweet->{text} !~ /\@${oauth{screen_name}}(?:[\p{Zs}\.]|$)/i);
+	                                                                  return if ($tweet->{text} !~ /\@${oauth{screen_name}}([\p{Zs}\.]|$)/ni);
 
 	                                                                  # Must not match white-list rules:
 	                                                                  return if (whitelist($nt, $tweet, $oauth{user_id}));
@@ -143,10 +143,17 @@ sub blocklist {
 	# Is our username a substring of theirs?
 	return 1 if ($tweet->{user}{screen_name} =~ /${screen_name}/i);
 
-	for ( # Does the tweet contain any "car wash" emojis?
-	     qr/(?:[🚌🚍🚐🚕🚖🚗🚘🚙🚚🚛🚜][💧💦☔️🚿🛀🛁]|[💧💦☔️🚿🛀🛁][🚌🚍🚐🚕🚖🚗🚘🚙🚚🚛🚜])/,
+	my ($car, $wash) = ('[🚌🚍🚐🚕🚖🚗🚘🚙🚚🚛🚜]', '[💧💦☔️🚿🛀🛁]'); # Set of "car wash" emojis
+	for (
+	     # Does the tweet contain any "car wash" emojis?
+	     qr/(${car}${wash}|${wash}${car})/n,
 	     # Does the tweet consist soley of the mention, possibly with whitespace and/or other usernames?
-	     qr/^(?:[\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*\@${screen_name}(?:[\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*$/i,
+	     qr/^([\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*\@${screen_name}([\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*$/ni,
+	     # Is somebody <verb>ing at the carwash? Do they have company?
+	     qr/(chillin[g']?|sittin[g']?|waitin[g']?|alone|on my own|with (my )?[a-zA-Z0-9_@]+|I( a|')m|(we|they)( a|')re|(wi|')ll be) \@${screen_name}/ni,
+	     qr/\@${screen_name} (chillin[g']?|waitin[g']?|alone|on my own|with )/ni,
+	     # Are they overly attached to their car?
+	     qr/my baby/i,
 	    ) {
 		return 1 if ($tweet->{text} =~ /${_}/i);
 	}
@@ -156,7 +163,7 @@ sub blocklist {
 		for (qw(country full_name name)) {
 			return 1 if (exists $tweet->{place}{$_} &&
 			             defined $tweet->{place}{$_} &&
-			             ($tweet->{place}{$_} =~ /(?:malaysia|kuala lumpur|johor|ipoh|brunei|begawan|philippines|quezon|calamba|manila|pampanga|indonesia|jakarta|surabaya|bandung|bekasi)/i)
+			             ($tweet->{place}{$_} =~ /(malaysia|kuala lumpur|johor|ipoh|brunei|begawan|philippines|quezon|calamba|manila|pampanga|indonesia|jakarta|surabaya|bandung|bekasi)/ni)
 			            );
 		}
 	}
