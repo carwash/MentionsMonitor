@@ -149,8 +149,8 @@ sub blocklist {
 	     qr/(${car}${wash}|${wash}${car})/n,
 	     # Does the tweet consist soley of the mention, possibly with whitespace and/or other usernames?
 	     qr/^([\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*\@${screen_name}([\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*$/ni,
-	     # Is somebody <verb>ing at the carwash? Do they have company?
-	     qr/(chillin[g']?|sittin[g']?|waitin[g']?|alone|on my own|with (my )?[a-zA-Z0-9_@]+|I( a|')m|(we|they)( a|')re|(wi|')ll be) \@${screen_name}/ni,
+	     # Is somebody <verb>ing at the carwash? Do they have company? Are they doing something with their car there?
+	     qr/(chillin[g']?|sittin[g']?|waitin[g']?|alone|on my own|with (my )?[a-zA-Z0-9_@]+|I( a|')m|(we|they)( a|')re|(wi|')ll be|car) \@${screen_name}/ni,
 	     qr/\@${screen_name} (chillin[g']?|waitin[g']?|alone|on my own|with )/ni,
 	     # Are they overly attached to their car?
 	     qr/my baby/i,
