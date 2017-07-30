@@ -15,7 +15,7 @@ use YAML::XS qw(DumpFile LoadFile);
 
 # MentionsMonitor: A simple Twitter bot that scans for misdirected mentions and blocks the unwitting users.
 # Inspired by @denny's MentionsManager <https://github.com/denny/MentionsManager>
-my $VERSION = '1.02';
+my $VERSION = '1.03';
 
 ################################################################################
 
@@ -142,6 +142,11 @@ sub blocklist {
 
 	# Is our username a substring of theirs?
 	return 1 if ($tweet->{user}{screen_name} =~ /${screen_name}/i);
+
+	# Do they sound like they might be an utter cockwomble?
+	for (@{$tweet->{user}}{qw/name description/}) {
+		return 1 if ($_ =~ /(?<![🚫🤜👊])[🐸🥛👌👌🏻卍卐](?![🤛👊])/);
+	}
 
 	my ($car, $wash) = ('[🚌🚍🚐🚕🚖🚗🚘🚙🚚🚛🚜]', '[💧💦☔️🚿🛀🛁]'); # Set of "car wash" emojis
 	for (
