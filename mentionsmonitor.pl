@@ -15,7 +15,7 @@ use YAML::XS qw(DumpFile LoadFile);
 
 # MentionsMonitor: A simple Twitter bot that scans for misdirected mentions and blocks the unwitting users.
 # Inspired by @denny's MentionsManager <https://github.com/denny/MentionsManager>
-my $VERSION = '1.02';
+my $VERSION = '1.03';
 
 ################################################################################
 
@@ -143,6 +143,11 @@ sub blocklist {
 	# Is our username a substring of theirs?
 	return 1 if ($tweet->{user}{screen_name} =~ /${screen_name}/i);
 
+	# Do they sound like they might be an utter cockwomble?
+	for (@{$tweet->{user}}{qw/name description/}) {
+		return 1 if ($_ =~ /(?<![🚫🤜👊])[🐸🥛👌👌🏻卍卐](?![🤛👊])/);
+	}
+
 	my ($car, $wash) = ('[🚌🚍🚐🚕🚖🚗🚘🚙🚚🚛🚜]', '[💧💦☔️🚿🛀🛁]'); # Set of "car wash" emojis
 	for (
 	     # Does the tweet contain any "car wash" emojis?
@@ -150,7 +155,7 @@ sub blocklist {
 	     # Does the tweet consist soley of the mention, possibly with whitespace and/or other usernames?
 	     qr/^([\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*\@${screen_name}([\p{Zs}\.]*\@[a-zA-Z0-9_]+[\p{Zs}\.]*)*[\p{Zs}\.]*$/ni,
 	     # Is somebody <verb>ing at the carwash? Do they have company? Are they doing something with their car there?
-	     qr/(chillin[g']?|sittin[g']?|waitin[g']?|alone|on my own|with (my )?[a-zA-Z0-9_@]+|I( a|')m|(we|they)( a|')re|(wi|')ll be|car) \@${screen_name}/ni,
+	     qr/(chillin[g']?|sittin[g']?|waitin[g']?|workin[g']?|alone|on my own|with (my )?[a-zA-Z0-9_@]+|I( a|')m|(we|they)( a|')re|(wi|')ll be|car) \@${screen_name}/ni,
 	     qr/\@${screen_name} (chillin[g']?|waitin[g']?|alone|on my own|with )/ni,
 	     # Are they overly attached to their car?
 	     qr/my baby/i,
